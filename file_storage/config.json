@@ -1,0 +1,18 @@
+{
+    "pg_config": {
+        "user": "postgres",
+        "password": "auGHTLewleAS",
+        "host": "postgres_db",
+        "port": 5432,
+        "database": "postgres"
+    },
+    "host": "0.0.0.0",
+    "port": 7093,
+    "storage":{
+        "bucket":"cntrlalgo",
+        "access_key": "accessKey_UF5qoB",
+        "sec_key": "verySecretKey_UF5qoB",
+        "endpoint": "http://S3-server:8000"
+    },
+    "storage_type": "s3"
+}

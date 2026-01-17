@@ -1,0 +1,10 @@
+{
+    "request_dir" : "/home/admin1/Projects/KafkaCntrlalgo/services/out_gateway/data/requests",
+    "responses_dir" : "/home/admin1/Projects/KafkaCntrlalgo/services/out_gateway/data/responses",
+    "event_dir" : "/home/admin1/Projects/KafkaCntrlalgo/services/out_gateway/data/events",
+    "error_dir" : "/home/admin1/Projects/KafkaCntrlalgo/services/out_gateway/data/errors",
+    "response_ext": ".zip",
+    "request_ext": ".zip",
+    "port": 8051,
+    "host": "0.0.0.0"
+}

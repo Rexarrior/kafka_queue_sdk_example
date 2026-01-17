@@ -1,0 +1,30 @@
+{
+    "port": 7094,
+    "host": "localhost",
+    "services": {
+        "FilterFOCS": {
+            "url": "http://localhost:7080"
+        },
+        "FilterKONT3": {
+            "url": "http://localhost:7081"
+        },
+        "AggregateBeforeCentr": {
+            "url": "http://localhost:7087"
+        },
+        "FilterCENTR_2_5": {
+            "url": "http://localhost:7082"
+        },
+        "Filter3DM": {
+            "url": "http://localhost:7083"
+        },
+        "FilterPREP": {
+            "url": "http://localhost:7084"
+        },
+        "TT34_UNI_PREP": {
+            "url": "http://localhost:7085"
+        },
+        "TT34_UNI_MARKERS": {
+            "url": "http://localhost:7086"
+        }
+    }
+}

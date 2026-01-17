@@ -1,0 +1,28 @@
+{
+    "default": {
+        "bootstrap.servers": "kafka:9092"
+    },
+    "default.consumer": {
+        "group.id": "cntrlalgo_gateway_out_1",
+        "auto.offset.reset": "largest"
+
+    },
+    "default.producer": {
+        "message.max.bytes": 1000000000
+    },
+    "topics": {
+        "events": {
+            "topic": "cntrlalgo_events"
+        }
+    },
+    "in_topics": [
+        "events"
+    ],
+    "out_topics": [
+    ],
+    "commutation": {
+    },
+    "event_topic": "events",
+    "server_id": "cntrlalgo_out_gateway",
+    "url": "http://localhost:8050"
+}

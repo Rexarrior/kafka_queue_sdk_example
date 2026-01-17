@@ -1,0 +1,105 @@
+version: '3'
+networks:
+  app_net:
+services:
+  kafka-ui:
+    container_name: kafka-ui
+    restart: unless-stopped
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8020:8080
+    environment:
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    networks:
+      - app_net
+
+  postgres_db:
+    image: postgres:14.0-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file: .env
+    ports:
+      - 5433:5432
+
+  S3-server:
+    image: zenko/cloudserver
+    restart: unless-stopped
+    ports:
+      - 9090:8000
+    environment:
+      # Set this to 'mem' for non-persistent storage (useful for testing)
+      S3BACKEND: file
+      SCALITY_ACCESS_KEY_ID: accessKey_UF5qoB
+      SCALITY_SECRET_ACCESS_KEY: verySecretKey_UF5qoB
+      # Stops zenko/cloudserver from attempting to connect to Zenko Orbit (their cloud platform for managing their various services)
+      REMOTE_MANAGEMENT_DISABLE: 1
+    volumes:
+      - ./scalityS3/data:/usr/src/app/localData
+      - ./scalityS3/data:/usr/src/app/localMetadata
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    restart: on-failure
+    ports:
+      - '2181:2181'
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - app_net
+
+  kafka:
+    image: wurstmeister/kafka
+    ports:
+      - '9092:9092'
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: localhost
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_CREATE_TOPICS: "esize_logic:1:1,files_proxy:1:1,esize_events:1:1,esize_out:1:1,cntrlalgo_in:1:1,cntrlalgo_fileproxy:1:1,cntrlalgo_out:1:1,cntrlalgo_events:1:1"
+    restart: on-failure
+    networks:
+      - app_net
+
+  in_gateway:
+    build:
+      context: ./in_gateway
+    ports:
+      - "7091:7091"
+    depends_on:
+      - kafka
+      - postgres_db
+      - S3-server
+    networks:
+      - app_net
+
+  out_gateway:
+    build:
+      context: ./out_gateway
+    ports:
+      - "7092:7092"
+    depends_on:
+      - kafka
+      - postgres_db
+    networks:
+      - app_net
+
+  file_storage:
+    build:
+      context: ./file_storage
+    ports:
+      - "7093:7093"
+    depends_on:
+      - kafka
+      - postgres_db
+      - S3-server
+    networks:
+      - app_net
+volumes:
+  postgres_data:
