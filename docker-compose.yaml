@@ -1,105 +1,202 @@
-version: '3'
+version: '3.8'
+
 networks:
   app_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  scalityS3_data:
+  kafka_data:
+  zookeeper_data:
+
 services:
-  kafka-ui:
-    container_name: kafka-ui
-    restart: unless-stopped
-    image: provectuslabs/kafka-ui:latest
-    ports:
-      - 8020:8080
-    environment:
-      DYNAMIC_CONFIG_ENABLED: 'true'
-    networks:
-      - app_net
-
-  postgres_db:
-    image: postgres:14.0-alpine
-    restart: unless-stopped
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    env_file: .env
-    ports:
-      - 5433:5432
-
-  S3-server:
-    image: zenko/cloudserver
-    restart: unless-stopped
-    ports:
-      - 9090:8000
-    environment:
-      # Set this to 'mem' for non-persistent storage (useful for testing)
-      S3BACKEND: file
-      SCALITY_ACCESS_KEY_ID: accessKey_UF5qoB
-      SCALITY_SECRET_ACCESS_KEY: verySecretKey_UF5qoB
-      # Stops zenko/cloudserver from attempting to connect to Zenko Orbit (their cloud platform for managing their various services)
-      REMOTE_MANAGEMENT_DISABLE: 1
-    volumes:
-      - ./scalityS3/data:/usr/src/app/localData
-      - ./scalityS3/data:/usr/src/app/localMetadata
-
+  # Infrastructure Services
   zookeeper:
     image: wurstmeister/zookeeper
+    container_name: zookeeper
+    restart: unless-stopped
     ulimits:
       nofile:
         soft: 65536
         hard: 65536
-    restart: on-failure
     ports:
       - '2181:2181'
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/opt/zookeeper-3.4.13/data
     networks:
       - app_net
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   kafka:
     image: wurstmeister/kafka
+    container_name: kafka
+    restart: unless-stopped
     ports:
       - '9092:9092'
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: localhost
+      KAFKA_ADVERTISED_HOST_NAME: kafka
       KAFKA_ADVERTISED_PORT: 9092
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       KAFKA_CREATE_TOPICS: "esize_logic:1:1,files_proxy:1:1,esize_events:1:1,esize_out:1:1,cntrlalgo_in:1:1,cntrlalgo_fileproxy:1:1,cntrlalgo_out:1:1,cntrlalgo_events:1:1"
-    restart: on-failure
+      KAFKA_MESSAGE_MAX_BYTES: 1000000000
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 1000000000
+      KAFKA_BROKER_ID: 1
+      KAFKA_DELETE_TOPIC_ENABLE: 'true'
+      KAFKA_LOG_RETENTION_HOURS: 168
+    volumes:
+      - kafka_data:/kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    networks:
+      - app_net
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    restart: unless-stopped
+    ports:
+      - '8020:8080'
+    environment:
+      DYNAMIC_CONFIG_ENABLED: 'true'
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    depends_on:
+      kafka:
+        condition: service_healthy
     networks:
       - app_net
 
-  in_gateway:
-    build:
-      context: ./in_gateway
+  postgres_db:
+    image: postgres:14.0-alpine
+    container_name: postgres_db
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_NAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "7091:7091"
-    depends_on:
-      - kafka
-      - postgres_db
-      - S3-server
+      - '5433:5432'
     networks:
       - app_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  S3-server:
+    image: minio/minio:latest
+    container_name: S3-server
+    restart: unless-stopped
+    ports:
+      - '9090:9000'
+      - '9091:9091'
+    environment:
+      MINIO_ROOT_USER: ${SCALITY_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${SCALITY_SECRET_ACCESS_KEY}
+    command: server /data --console-address ":9091"
+    volumes:
+      - scalityS3_data:/data
+    networks:
+      - app_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Application Services
+  in_gateway:
+    build:
+      context: ..
+      dockerfile: kafka_queue_sdk_example/in_gateway/Dockerfile
+    container_name: in_gateway
+    restart: unless-stopped
+    ports:
+      - '7091:7091'
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres_db:
+        condition: service_healthy
+      S3-server:
+        condition: service_healthy
+    networks:
+      - app_net
+    volumes:
+      - ./in_gateway/logs:/app/logs
 
   out_gateway:
     build:
-      context: ./out_gateway
+      context: ..
+      dockerfile: kafka_queue_sdk_example/out_gateway/Dockerfile
+    container_name: out_gateway
+    restart: unless-stopped
     ports:
-      - "7092:7092"
+      - '7092:7092'
     depends_on:
-      - kafka
-      - postgres_db
+      kafka:
+        condition: service_healthy
+      postgres_db:
+        condition: service_healthy
     networks:
       - app_net
+    volumes:
+      - ./out_gateway/logs:/app/logs
 
   file_storage:
     build:
-      context: ./file_storage
+      context: ..
+      dockerfile: kafka_queue_sdk_example/file_storage/Dockerfile
+    container_name: file_storage
+    restart: unless-stopped
     ports:
-      - "7093:7093"
+      - '7093:7093'
     depends_on:
-      - kafka
-      - postgres_db
-      - S3-server
+      kafka:
+        condition: service_healthy
+      postgres_db:
+        condition: service_healthy
+      S3-server:
+        condition: service_healthy
     networks:
       - app_net
-volumes:
-  postgres_data:
+    volumes:
+      - ./file_storage/logs:/app/logs
+
+  admin:
+    build:
+      context: ..
+      dockerfile: kafka_queue_sdk_example/admin/Dockerfile
+    container_name: admin
+    restart: unless-stopped
+    ports:
+      - '7094:7094'
+    depends_on:
+      - in_gateway
+      - out_gateway
+      - file_storage
+    networks:
+      - app_net
+    volumes:
+      - ./admin/logs:/app/logs
