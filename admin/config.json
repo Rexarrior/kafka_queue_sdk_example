@@ -12,7 +12,7 @@
             "url": "http://file_storage:7093"
         },
         "logic": {
-            "url": "http://logic:7095"
+            "url": "http://logic:7096"
         }
     },
     "auth": {

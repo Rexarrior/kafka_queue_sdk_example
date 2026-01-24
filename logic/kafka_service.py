@@ -1,11 +1,14 @@
 import os
 from kafka_server_sdk import KafkaBasedServer, ServerConfig
 from kafka_server_sdk.common import Logger
+from kafka_server_sdk.service_admin import AdminApiConfig
+import kafka_server_sdk.service_admin as debug_api
 
 log_dir = os.path.join(os.path.dirname(__file__), "logs")
 Logger().init_logging(log_dir, "DEBUG", 5, 10)
 
 server_config_path = "./server_config.json"
+admin_config_path = "./admin_config.json"
 
 
 class LogicServer(KafkaBasedServer):
@@ -32,5 +35,12 @@ class LogicServer(KafkaBasedServer):
 
 if __name__ == "__main__":
     cfg = ServerConfig.load_from_file(server_config_path)
+    admin_config = AdminApiConfig.load_from_file(admin_config_path)
+    
     server = LogicServer(cfg)
+    
+    # Start debug/admin API in a separate thread
+    debug_api.start_api(server, admin_config)
+    
+    # Run the main server
     server.run()
