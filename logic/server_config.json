@@ -1,0 +1,37 @@
+{
+    "default": {
+        "bootstrap.servers": "kafka:9092"
+    },
+    "default.consumer": {
+        "group.id": "logic_service_1",
+        "auto.offset.reset": "largest",
+        "max.poll.interval.ms": "60000",
+        "session.timeout.ms": "30000"
+    },
+    "default.producer": {
+        "message.max.bytes": 1000000000
+    },
+    "topics": {
+        "events": {
+            "topic": "events"
+        },
+        "in": {
+            "topic": "logic_in"
+        },
+        "out": {
+            "topic": "files_proxy"
+        }
+    },
+    "in_topics": [
+        "in"
+    ],
+    "out_topics": [
+        "out"
+    ],
+    "commutation": {
+        "in": "out"
+    },
+    "event_topic": "events",
+    "server_id": "logic_service",
+    "url": "http://logic:7095"
+}

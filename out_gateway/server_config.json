@@ -3,7 +3,7 @@
         "bootstrap.servers": "kafka:9092"
     },
     "default.consumer": {
-        "group.id": "cntrlalgo_gateway_out_1",
+        "group.id": "out_gateway_1",
         "auto.offset.reset": "largest"
 
     },
@@ -12,7 +12,7 @@
     },
     "topics": {
         "events": {
-            "topic": "cntrlalgo_events"
+            "topic": "events"
         }
     },
     "in_topics": [
@@ -23,6 +23,6 @@
     "commutation": {
     },
     "event_topic": "events",
-    "server_id": "cntrlalgo_out_gateway",
-    "url": "http://localhost:8050"
+    "server_id": "out_gateway",
+    "url": "http://out_gateway:7092"
 }

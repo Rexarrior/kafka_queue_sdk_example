@@ -3,7 +3,7 @@
         "bootstrap.servers": "kafka:9092"
     },
     "default.consumer": {
-        "group.id": "cntrlalgo_storage_1",
+        "group.id": "file_storage_1",
         "auto.offset.reset": "largest",
         "max.poll.interval.ms": "60000",
         "session.timeout.ms": "30000"
@@ -14,13 +14,13 @@
     },
     "topics": {
         "events": {
-            "topic": "cntrlalgo_events"
+            "topic": "events"
         },
         "in": {
-            "topic": "cntrlalgo_fileproxy"
+            "topic": "files_proxy"
         },
         "out": {
-            "topic": "cntrlalgo_out"
+            "topic": "out"
         }
     },
     "in_topics": [
@@ -33,6 +33,6 @@
         "in": "out"
     },
     "event_topic": "events",
-    "server_id": "cntrlalgo_file_storage",
-    "url": "http://localhost:8060"
+    "server_id": "file_storage",
+    "url": "http://file_storage:7093"
 }

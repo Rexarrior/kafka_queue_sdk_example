@@ -8,5 +8,5 @@
     },
     "host": "0.0.0.0",
     "port": 7092,
-    "last_steps": ["cntrlalgo_uni_markers"]
+    "last_steps": ["file_storage"]
 }

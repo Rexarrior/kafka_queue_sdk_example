@@ -9,10 +9,10 @@
     "host": "0.0.0.0",
     "port": 7093,
     "storage":{
-        "bucket":"cntrlalgo",
+        "bucket":"files",
         "access_key": "accessKey_UF5qoB",
         "sec_key": "verySecretKey_UF5qoB",
-        "endpoint": "http://S3-server:8000"
+        "endpoint": "http://S3-server:9000"
     },
     "storage_type": "s3"
 }

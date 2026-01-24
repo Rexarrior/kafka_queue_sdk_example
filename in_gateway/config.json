@@ -1,6 +1,6 @@
 {
     "out_topic": {
-        "topic": "cntrlalgo_in",
+        "topic": "logic_in",
         "producer": {
             "bootstrap.servers": "kafka:9092",
             "message.max.bytes": 1000000000

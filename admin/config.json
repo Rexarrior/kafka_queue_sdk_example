@@ -2,29 +2,20 @@
     "port": 7094,
     "host": "0.0.0.0",
     "services": {
-        "FilterFOCS": {
-            "url": "http://localhost:7080"
+        "in_gateway": {
+            "url": "http://in_gateway:7091"
         },
-        "FilterKONT3": {
-            "url": "http://localhost:7081"
+        "out_gateway": {
+            "url": "http://out_gateway:7092"
         },
-        "AggregateBeforeCentr": {
-            "url": "http://localhost:7087"
+        "message_storage": {
+            "url": "http://file_storage:7093"
         },
-        "FilterCENTR_2_5": {
-            "url": "http://localhost:7082"
-        },
-        "Filter3DM": {
-            "url": "http://localhost:7083"
-        },
-        "FilterPREP": {
-            "url": "http://localhost:7084"
-        },
-        "TT34_UNI_PREP": {
-            "url": "http://localhost:7085"
-        },
-        "TT34_UNI_MARKERS": {
-            "url": "http://localhost:7086"
+        "logic": {
+            "url": "http://logic:7095"
         }
+    },
+    "auth": {
+        "enabled": false
     }
 }
