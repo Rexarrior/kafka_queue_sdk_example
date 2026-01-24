@@ -8,5 +8,18 @@
     },
     "host": "0.0.0.0",
     "port": 7092,
-    "last_steps": ["file_storage"]
+    "last_steps": ["file_storage"],
+    "auth": {
+        "enabled": true,
+        "method": "basic",
+        "credentials": [
+            {
+                "username": "admin",
+                "password": "admin123"
+            }
+        ],
+        "exclude_paths": [
+            "/out/healthcheck"
+        ]
+    }
 }

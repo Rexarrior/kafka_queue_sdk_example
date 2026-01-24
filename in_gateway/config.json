@@ -15,5 +15,18 @@
         "database": "postgres"
     },
     "host": "0.0.0.0",
-    "port": 7091
+    "port": 7091,
+    "auth": {
+        "enabled": true,
+        "method": "basic",
+        "credentials": [
+            {
+                "username": "admin",
+                "password": "admin123"
+            }
+        ],
+        "exclude_paths": [
+            "/in/healthcheck"
+        ]
+    }
 }

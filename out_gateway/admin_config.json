@@ -6,5 +6,19 @@
     "response_ext": ".zip",
     "request_ext": ".zip",
     "port": 8051,
-    "host": "0.0.0.0"
+    "host": "0.0.0.0",
+    "auth": {
+        "enabled": true,
+        "method": "basic",
+        "credentials": [
+            {
+                "username": "admin",
+                "password": "admin123"
+            }
+        ],
+        "exclude_paths": [
+            "/healthcheck",
+            "/auth/status"
+        ]
+    }
 }

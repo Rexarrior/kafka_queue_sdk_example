@@ -16,6 +16,21 @@
         }
     },
     "auth": {
-        "enabled": false
+        "enabled": true,
+        "method": "basic",
+        "credentials": [
+            {
+                "username": "admin",
+                "password": "admin123"
+            }
+        ],
+        "exclude_paths": [
+            "/healthcheck",
+            "/auth/status",
+            "/admin/favicon.ico",
+            "/admin/logo.png",
+            "/admin/css/",
+            "/admin/js/"
+        ]
     }
 }
