@@ -1,0 +1,24 @@
+{
+    "request_dir": "/app/data/requests",
+    "responses_dir": "/app/data/responses",
+    "event_dir": "/app/data/events",
+    "error_dir": "/app/data/errors",
+    "response_ext": ".zip",
+    "request_ext": ".zip",
+    "port": 7098,
+    "host": "0.0.0.0",
+    "auth": {
+        "enabled": true,
+        "method": "basic",
+        "credentials": [
+            {
+                "username": "admin",
+                "password": "admin123"
+            }
+        ],
+        "exclude_paths": [
+            "/healthcheck",
+            "/auth/status"
+        ]
+    }
+}

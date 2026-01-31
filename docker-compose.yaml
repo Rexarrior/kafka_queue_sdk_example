@@ -57,6 +57,7 @@ services:
     command: >
       bash -c "
         kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic logic_in --partitions 1 --replication-factor 1 &&
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic hold_in --partitions 1 --replication-factor 1 &&
         kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic files_proxy --partitions 1 --replication-factor 1 &&
         kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic events --partitions 1 --replication-factor 1 &&
         kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic out --partitions 1 --replication-factor 1 &&
@@ -198,6 +199,24 @@ services:
     volumes:
       - ./logic/logs:/app/logs
 
+  hold_service:
+    build:
+      context: ..
+      dockerfile: kafka_queue_sdk_example/hold_service/Dockerfile
+    container_name: hold_service
+    restart: unless-stopped
+    ports:
+      - '7097:7097'
+      - '7098:7098'
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - app_net
+    volumes:
+      - ./hold_service/logs:/app/logs
+      - ./hold_service/data:/app/data
+
   admin:
     build:
       context: ..
@@ -211,6 +230,7 @@ services:
       - out_gateway
       - file_storage
       - logic
+      - hold_service
     networks:
       - app_net
     volumes:

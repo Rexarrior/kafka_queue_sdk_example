@@ -1,0 +1,22 @@
+{
+    "host": "0.0.0.0",
+    "port": 7097,
+    "db_type": "sqlite",
+    "db_path": "/app/data/hold_service.db",
+    "default_download_extension": ".bin",
+    "unholded_message_ttl": 3600,
+    "auth": {
+        "enabled": true,
+        "method": "basic",
+        "credentials": [
+            {
+                "username": "admin",
+                "password": "admin123"
+            }
+        ],
+        "exclude_paths": [
+            "/healthcheck",
+            "/auth/status"
+        ]
+    }
+}

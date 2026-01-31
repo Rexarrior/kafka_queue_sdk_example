@@ -3,7 +3,7 @@
         "bootstrap.servers": "kafka:9092"
     },
     "default.consumer": {
-        "group.id": "logic_service_1",
+        "group.id": "hold_service_1",
         "auto.offset.reset": "largest",
         "max.poll.interval.ms": "60000",
         "session.timeout.ms": "30000"
@@ -16,10 +16,10 @@
             "topic": "events"
         },
         "in": {
-            "topic": "logic_in"
+            "topic": "hold_in"
         },
         "out": {
-            "topic": "hold_in"
+            "topic": "files_proxy"
         }
     },
     "in_topics": [
@@ -32,6 +32,6 @@
         "in": "out"
     },
     "event_topic": "events",
-    "server_id": "logic_service",
-    "url": "http://logic:7095"
+    "server_id": "hold_service",
+    "url": "http://hold_service:7097"
 }

@@ -18,6 +18,8 @@ This is a complete Docker-based setup for a Kafka-based microservices architectu
 - **out_gateway** (port 7092) - Output gateway service
 - **file_storage** (port 7093) - File storage service
 - **admin** (port 7094) - Admin/monitoring service
+- **logic** (ports 7095, 7096) - Logic processing service
+- **hold_service** (ports 7097, 7098) - Message hold and management service
 
 ## Prerequisites
 
@@ -73,6 +75,23 @@ This is a complete Docker-based setup for a Kafka-based microservices architectu
 - **Dependencies**: Kafka, PostgreSQL, S3
 - **Config**: `file_storage/config.json`
 
+### logic
+- **Purpose**: Business logic processing service
+- **Ports**: 7095 (main), 7096 (admin)
+- **Dependencies**: Kafka
+- **Config**: `logic/server_config.json`, `logic/admin_config.json`
+
+### hold_service
+- **Purpose**: Message holding and management service for controlled message flow
+- **Ports**: 7097 (main), 7098 (admin)
+- **Dependencies**: Kafka
+- **Config**: `hold_service/config.json`, `hold_service/server_config.json`, `hold_service/admin_config.json`
+- **Features**: 
+  - Holds messages from logic service
+  - Provides API for message management (hold/release)
+  - Forwards released messages to file_storage
+  - SQLite database for message persistence
+
 ### admin
 - **Purpose**: Queue administration and monitoring
 - **Port**: 7094
@@ -82,14 +101,20 @@ This is a complete Docker-based setup for a Kafka-based microservices architectu
 ## Kafka Topics
 
 The following Kafka topics are automatically created:
-- `esize_logic:1:1`
-- `files_proxy:1:1`
-- `esize_events:1:1`
-- `esize_out:1:1`
-- `cntrlalgo_in:1:1`
-- `cntrlalgo_fileproxy:1:1`
-- `cntrlalgo_out:1:1`
-- `cntrlalgo_events:1:1`
+- `logic_in` - Input topic for logic service
+- `hold_in` - Input topic for hold service (from logic)
+- `files_proxy` - Input topic for file storage (from hold service)
+- `events` - Events topic for all services
+- `out` - Output topic
+
+## Message Flow
+
+The architecture follows this message flow:
+1. **in_gateway** receives requests → publishes to `logic_in`
+2. **logic** processes messages from `logic_in` → publishes to `hold_in`
+3. **hold_service** receives messages from `hold_in` → holds/manages them → publishes to `files_proxy`
+4. **file_storage** processes messages from `files_proxy` → publishes to `out`
+5. **out_gateway** sends responses from `out` topic
 
 ## Access Points
 
@@ -98,6 +123,8 @@ The following Kafka topics are automatically created:
 - **Out Gateway**: http://localhost:7092
 - **File Storage**: http://localhost:7093
 - **Admin Panel**: http://localhost:7094
+- **Logic Service**: http://localhost:7095 (admin: 7096)
+- **Hold Service**: http://localhost:7097 (admin: 7098)
 - **S3 Server**: http://localhost:9090
 - **PostgreSQL**: localhost:5433
 
@@ -109,10 +136,12 @@ Edit `.env` file to configure:
 - S3 access keys
 
 ### Service Configurations
-Each service has its own `config.json` file in its directory:
+Each service has its own configuration files in its directory:
 - `in_gateway/config.json`
 - `out_gateway/config.json`
-- `file_storage/config.json`
+- `file_storage/config.json`, `server_config.json`, `admin_config.json`
+- `logic/server_config.json`, `admin_config.json`
+- `hold_service/config.json`, `server_config.json`, `admin_config.json`
 - `admin/config.json`
 
 ## Health Checks
@@ -131,6 +160,8 @@ Service logs are mounted to local directories:
 - `in_gateway/logs/`
 - `out_gateway/logs/`
 - `file_storage/logs/`
+- `logic/logs/`
+- `hold_service/logs/`
 - `admin/logs/`
 
 ## Troubleshooting

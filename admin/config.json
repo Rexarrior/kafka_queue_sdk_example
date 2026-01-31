@@ -13,6 +13,9 @@
         },
         "logic": {
             "url": "http://logic:7096"
+        },
+        "hold_service": {
+            "url": "http://hold_service:7098"
         }
     },
     "auth": {
