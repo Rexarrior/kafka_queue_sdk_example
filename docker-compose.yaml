@@ -217,6 +217,24 @@ services:
       - ./hold_service/logs:/app/logs
       - ./hold_service/data:/app/data
 
+  hold_service_2:
+    build:
+      context: ..
+      dockerfile: kafka_queue_sdk_example/hold_service_2/Dockerfile
+    container_name: hold_service_2
+    restart: unless-stopped
+    ports:
+      - '7099:7099'
+      - '7100:7100'
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - app_net
+    volumes:
+      - ./hold_service_2/logs:/app/logs
+      - ./hold_service_2/data:/app/data
+
   admin:
     build:
       context: ..
@@ -231,6 +249,7 @@ services:
       - file_storage
       - logic
       - hold_service
+      - hold_service_2
     networks:
       - app_net
     volumes:

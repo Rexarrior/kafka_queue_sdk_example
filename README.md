@@ -20,6 +20,7 @@ This is a complete Docker-based setup for a Kafka-based microservices architectu
 - **admin** (port 7094) - Admin/monitoring service
 - **logic** (ports 7095, 7096) - Logic processing service
 - **hold_service** (ports 7097, 7098) - Message hold and management service
+- **hold_service_2** (ports 7099, 7100) - Second message hold and management service with custom prefix
 
 ## Prerequisites
 
@@ -91,6 +92,19 @@ This is a complete Docker-based setup for a Kafka-based microservices architectu
   - Provides API for message management (hold/release)
   - Forwards released messages to file_storage
   - SQLite database for message persistence
+- **Admin Panel**: http://localhost:7097/hold_admin_panel/ (default prefix)
+
+### hold_service_2
+- **Purpose**: Second message holding and management service demonstrating configurable prefix feature
+- **Ports**: 7099 (main), 7100 (admin)
+- **Dependencies**: Kafka
+- **Config**: `hold_service_2/config.json`, `hold_service_2/server_config.json`, `hold_service_2/admin_config.json`
+- **Features**: 
+  - Same functionality as hold_service
+  - Uses custom prefix `hold_admin_panel_2` (configured in config.json)
+  - Separate consumer group and database
+  - Demonstrates multiple instances with different URL prefixes
+- **Admin Panel**: http://localhost:7099/hold_admin_panel_2/ (custom prefix)
 
 ### admin
 - **Purpose**: Queue administration and monitoring
@@ -124,7 +138,8 @@ The architecture follows this message flow:
 - **File Storage**: http://localhost:7093
 - **Admin Panel**: http://localhost:7094
 - **Logic Service**: http://localhost:7095 (admin: 7096)
-- **Hold Service**: http://localhost:7097 (admin: 7098)
+- **Hold Service**: http://localhost:7097/hold_admin_panel/ (admin: 7098)
+- **Hold Service 2**: http://localhost:7099/hold_admin_panel_2/ (admin: 7100)
 - **S3 Server**: http://localhost:9090
 - **PostgreSQL**: localhost:5433
 
@@ -142,6 +157,7 @@ Each service has its own configuration files in its directory:
 - `file_storage/config.json`, `server_config.json`, `admin_config.json`
 - `logic/server_config.json`, `admin_config.json`
 - `hold_service/config.json`, `server_config.json`, `admin_config.json`
+- `hold_service_2/config.json`, `server_config.json`, `admin_config.json`
 - `admin/config.json`
 
 ## Health Checks
@@ -162,6 +178,7 @@ Service logs are mounted to local directories:
 - `file_storage/logs/`
 - `logic/logs/`
 - `hold_service/logs/`
+- `hold_service_2/logs/`
 - `admin/logs/`
 
 ## Troubleshooting

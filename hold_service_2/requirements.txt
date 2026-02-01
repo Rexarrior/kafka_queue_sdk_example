@@ -1,0 +1,2 @@
+kafka-queue-client @ file:///tmp/kafkaQueueSdk/client
+git+file:///tmp/kafkaQueueSdk

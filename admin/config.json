@@ -16,6 +16,9 @@
         },
         "hold_service": {
             "url": "http://hold_service:7098"
+        },
+        "hold_service_2": {
+            "url": "http://hold_service_2:7100"
         }
     },
     "auth": {
