@@ -17,6 +17,11 @@
   "host": "0.0.0.0",
   "port": 7091,
   "max_upload_bytes": 104857600,
+  "outbox_poll_interval": 1.0,
+  "outbox_batch_size": 20,
+  "outbox_lease_seconds": 30,
+  "outbox_retry_base_seconds": 1,
+  "outbox_retry_max_seconds": 60,
     "auth": {
         "enabled": true,
         "method": "basic",

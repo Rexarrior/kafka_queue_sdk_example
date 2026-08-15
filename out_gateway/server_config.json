@@ -4,7 +4,7 @@
     },
     "default.consumer": {
         "group.id": "out_gateway_1",
-        "auto.offset.reset": "largest"
+        "auto.offset.reset": "earliest"
 
     },
     "default.producer": {

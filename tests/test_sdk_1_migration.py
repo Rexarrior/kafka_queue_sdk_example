@@ -119,6 +119,25 @@ def test_compose_initializes_the_required_s3_bucket():
     assert "condition: service_completed_successfully" in compose
 
 
+def test_compose_runs_alembic_before_database_services():
+    compose = (ROOT / "docker-compose.yaml").read_text(encoding="utf-8")
+    assert "db-migrate:" in compose
+    assert '["kafka-queue-db", "upgrade", "--config", "/app/config.json"]' in compose
+    assert compose.count("KAFKA_QUEUE_SCHEMA_MODE: validate") == 3
+    assert compose.count("db-migrate:\n        condition: service_completed_successfully") == 3
+
+
+def test_compose_waits_for_topic_initialization_before_queue_workers():
+    compose = (ROOT / "docker-compose.yaml").read_text(encoding="utf-8")
+    assert compose.count("kafka-init:\n        condition: service_completed_successfully") == 6
+
+
+def test_manual_migration_script_uses_the_idempotent_alembic_job():
+    script = (ROOT / "migrate_sdk_1_db.sh").read_text(encoding="utf-8")
+    assert "run --rm --build db-migrate" in script
+    assert "001_sessions_external_id.sql" not in script
+
+
 @pytest.mark.parametrize("path", ADMIN_CONFIGS)
 def test_observer_directories_are_confined_and_capture_is_opt_in(path):
     config = load_json(path)
@@ -139,12 +158,26 @@ def test_upload_limit_is_explicit(path):
     assert load_json(path)["max_upload_bytes"] == 100 * 1024 * 1024
 
 
+def test_reliability_worker_tuning_is_explicit():
+    incoming = load_json(ROOT / "in_gateway/config.json")
+    assert incoming["outbox_poll_interval"] == 1.0
+    assert incoming["outbox_batch_size"] == 20
+    assert incoming["outbox_lease_seconds"] == 30
+
+    for path in (ROOT / "file_storage/config.json", ROOT / "file_storage/local_config.json"):
+        storage = load_json(path)
+        assert storage["deletion_poll_interval"] == 1.0
+        assert storage["deletion_batch_size"] == 20
+        assert storage["deletion_lease_seconds"] == 30
+
+
 @pytest.mark.parametrize("path", SERVER_CONFIGS)
 def test_kafka_consumer_config_uses_framework_managed_offsets(path):
     config = load_json(path)
     consumer = config.get("default.consumer", {})
     assert "enable.auto.commit" not in consumer
     assert "enable.auto.offset.store" not in consumer
+    assert consumer.get("auto.offset.reset") == "earliest"
     ServerConfig.load_from_file(path)
 
 

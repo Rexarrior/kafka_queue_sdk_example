@@ -129,6 +129,19 @@ services:
       timeout: 5s
       retries: 5
 
+  db-migrate:
+    build:
+      context: ..
+      dockerfile: kafka_queue_sdk_example/in_gateway/Dockerfile
+    command: ["kafka-queue-db", "upgrade", "--config", "/app/config.json"]
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    environment: *postgres-environment
+    networks:
+      - app_net
+    restart: "no"
+
   s3-init:
     image: minio/mc:latest
     depends_on:
@@ -159,14 +172,19 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
       postgres_db:
         condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
       S3-server:
         condition: service_healthy
     networks:
       - app_net
     environment:
       <<: [*auth-environment, *postgres-environment]
+      KAFKA_QUEUE_SCHEMA_MODE: validate
     volumes:
       - ./in_gateway/logs:/app/logs
 
@@ -181,12 +199,17 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
       postgres_db:
         condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
     networks:
       - app_net
     environment:
       <<: [*auth-environment, *postgres-environment]
+      KAFKA_QUEUE_SCHEMA_MODE: validate
     volumes:
       - ./out_gateway/logs:/app/logs
 
@@ -201,8 +224,12 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
       postgres_db:
         condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
       S3-server:
         condition: service_healthy
       s3-init:
@@ -211,6 +238,7 @@ services:
       - app_net
     environment:
       <<: [*auth-environment, *postgres-environment, *s3-environment]
+      KAFKA_QUEUE_SCHEMA_MODE: validate
     volumes:
       - ./file_storage/logs:/app/logs
 
@@ -226,6 +254,8 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     networks:
       - app_net
     environment: *auth-environment
@@ -244,6 +274,8 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     networks:
       - app_net
     environment: *auth-environment
@@ -263,6 +295,8 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     networks:
       - app_net
     environment: *auth-environment

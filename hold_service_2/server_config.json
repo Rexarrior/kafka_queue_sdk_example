@@ -4,7 +4,7 @@
     },
     "default.consumer": {
         "group.id": "hold_service_2",
-        "auto.offset.reset": "largest",
+        "auto.offset.reset": "earliest",
         "max.poll.interval.ms": "60000",
         "session.timeout.ms": "30000"
     },

@@ -11,6 +11,7 @@ checkout and fails if either imported version is not exactly `1.0.0`.
 - **Kafka** (port 9092) - Message broker
 - **Kafka UI** (port 8020) - Web interface for Kafka management
 - **PostgreSQL** (port 5433) - Database for services
+- **db-migrate** - One-shot Alembic upgrade; must complete before DB-backed services start
 - **MinIO** (ports 9090, 9091) - S3-compatible object storage
   - API endpoint: http://localhost:9090
   - Web Console: http://localhost:9091
@@ -53,6 +54,9 @@ checkout and fails if either imported version is not exactly `1.0.0`.
    cd kafka_queue_sdk_example
    docker-compose up -d --build
    ```
+
+   Compose runs the idempotent `db-migrate` job first. It creates an empty
+   schema or upgrades/adopts a supported existing schema without clearing rows.
 
 3. **View logs:**
    ```bash
@@ -175,17 +179,35 @@ Edit `.env` file to configure:
 - Stop every application service before upgrading an existing test queue.
 - Old Kafka/cache messages and old aggregator snapshots are not compatible and
   may be removed as described in `../kafkaQueueSdk/MIGRATION.md`.
-- For an existing pre-1.0 PostgreSQL schema, start only PostgreSQL and run:
+- Build the updated SDK image, start PostgreSQL, and run the same Alembic job
+  used by normal Compose startup:
 
   ```bash
-  docker-compose up -d postgres_db
   ./migrate_sdk_1_db.sh
   ```
 
-- Do not run that SQL against an empty database before SDK 1.0 has created the
-  tables. A fresh database created by this example already gets the new schema.
+- The command is safe for both an empty database and a supported existing
+  database, and can be rerun. It aborts if existing `sessions.external_id`
+  values contain nulls or duplicates; correct those rows explicitly and rerun.
+  The expected head is `0002_reliability_jobs`; it adds the durable outbox and
+  storage-deletion reconciliation schema without deleting existing rows.
+- `in_gateway`, `out_gateway`, and `file_storage` set
+  `KAFKA_QUEUE_SCHEMA_MODE=validate` and will not start until `db-migrate`
+  reaches the packaged Alembic head. Keep this setting when adapting the
+  Compose pattern. If applications should migrate on startup instead, remove
+  `validate`; the SDK default is `upgrade`, and their DB role then needs DDL
+  privileges.
 - The in-gateway and file-storage limit uploads to 100 MiB. Change
   `max_upload_bytes` in their configs and at the reverse proxy together.
+- In-gateway starts its outbox publisher automatically. File storage starts its
+  deletion reconciler automatically. Their explicit `outbox_*` and `deletion_*`
+  values in the example are optional retry/lease tuning, not new required
+  infrastructure or secrets. A durable operation may return 202 while retry is
+  pending; monitor old pending jobs and retry counts.
+- All application consumers use `auto.offset.reset=earliest`, and Compose waits
+  for `kafka-init` to finish before starting them. Preserve both properties: a
+  broker healthcheck alone does not prove topics exist, and a new group using
+  `largest`/`latest` can skip messages sent before its first assignment.
 - Service-admin capture of payloads and headers is explicitly disabled. If you
   enable it, set retention/quota controls and treat the observer files as
   sensitive data.
@@ -207,7 +229,9 @@ All infrastructure services have health checks configured:
 - **PostgreSQL**: `pg_isready` check
 - **S3 Server**: HTTP endpoint check
 
-Application services will wait for healthy infrastructure before starting.
+Application services wait for healthy infrastructure, successful topic
+creation, and (where applicable) the Alembic migration/bucket-provisioning jobs
+before starting.
 
 ## Logs
 
@@ -305,6 +329,20 @@ script configures `incoming_url`, `progress_url`, and `files_url`. Deployments
 with a reverse proxy serving all three paths may continue to pass one
 `base_url`. Override the smoke-test endpoints with `KAFKA_QUEUE_IN_URL`,
 `KAFKA_QUEUE_OUT_URL`, `KAFKA_QUEUE_FILES_URL`, and `KAFKA_QUEUE_HOLD_URL`.
+
+After a successful client cycle, verify the live deletion reconciliation path
+using that run's external ID:
+
+```bash
+KAFKA_QUEUE_AUTH_PASSWORD='<local-test-password>' \
+KAFKA_QUEUE_TEST_EXTERNAL_ID='<client-live-external-id>' \
+PYTHONPATH=../kafkaQueueSdk/client:../kafkaQueueSdk \
+  ../kafkaQueueSdk/.venv/bin/python tests/live_deletion_saga.py
+```
+
+The script accepts either immediate `204` or queued `202`, then waits until the
+deleted entry disappears from the public file list. The corresponding
+`storage_deletion_jobs` row should end in `completed`.
 
 ### Rebuild specific service
 ```bash

@@ -13,6 +13,11 @@
     },
     "storage_type": "local",
     "max_upload_bytes": 104857600,
+    "deletion_poll_interval": 1.0,
+    "deletion_batch_size": 20,
+    "deletion_lease_seconds": 30,
+    "deletion_retry_base_seconds": 1,
+    "deletion_retry_max_seconds": 60,
     "auth": {
         "enabled": true,
         "method": "basic",
