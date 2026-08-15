@@ -1,4 +1,10 @@
-version: '3.8'
+x-auth-environment: &auth-environment
+  KAFKA_QUEUE_AUTH_PASSWORD: ${KAFKA_QUEUE_AUTH_PASSWORD:?set KAFKA_QUEUE_AUTH_PASSWORD}
+x-postgres-environment: &postgres-environment
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+x-s3-environment: &s3-environment
+  SCALITY_ACCESS_KEY_ID: ${SCALITY_ACCESS_KEY_ID:?set SCALITY_ACCESS_KEY_ID}
+  SCALITY_SECRET_ACCESS_KEY: ${SCALITY_SECRET_ACCESS_KEY:?set SCALITY_SECRET_ACCESS_KEY}
 
 networks:
   app_net:
@@ -123,6 +129,24 @@ services:
       timeout: 5s
       retries: 5
 
+  s3-init:
+    image: minio/mc:latest
+    depends_on:
+      S3-server:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${SCALITY_ACCESS_KEY_ID:?set SCALITY_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${SCALITY_SECRET_ACCESS_KEY:?set SCALITY_SECRET_ACCESS_KEY}
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - >-
+        mc alias set local http://S3-server:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" &&
+        mc mb --ignore-existing local/files
+    networks:
+      - app_net
+    restart: "no"
+
   # Application Services
   in_gateway:
     build:
@@ -141,6 +165,8 @@ services:
         condition: service_healthy
     networks:
       - app_net
+    environment:
+      <<: [*auth-environment, *postgres-environment]
     volumes:
       - ./in_gateway/logs:/app/logs
 
@@ -159,6 +185,8 @@ services:
         condition: service_healthy
     networks:
       - app_net
+    environment:
+      <<: [*auth-environment, *postgres-environment]
     volumes:
       - ./out_gateway/logs:/app/logs
 
@@ -177,8 +205,12 @@ services:
         condition: service_healthy
       S3-server:
         condition: service_healthy
+      s3-init:
+        condition: service_completed_successfully
     networks:
       - app_net
+    environment:
+      <<: [*auth-environment, *postgres-environment, *s3-environment]
     volumes:
       - ./file_storage/logs:/app/logs
 
@@ -196,6 +228,7 @@ services:
         condition: service_healthy
     networks:
       - app_net
+    environment: *auth-environment
     volumes:
       - ./logic/logs:/app/logs
 
@@ -213,6 +246,7 @@ services:
         condition: service_healthy
     networks:
       - app_net
+    environment: *auth-environment
     volumes:
       - ./hold_service/logs:/app/logs
       - ./hold_service/data:/app/data
@@ -231,6 +265,7 @@ services:
         condition: service_healthy
     networks:
       - app_net
+    environment: *auth-environment
     volumes:
       - ./hold_service_2/logs:/app/logs
       - ./hold_service_2/data:/app/data
@@ -252,5 +287,6 @@ services:
       - hold_service_2
     networks:
       - app_net
+    environment: *auth-environment
     volumes:
       - ./admin/logs:/app/logs

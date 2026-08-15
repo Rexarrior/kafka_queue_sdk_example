@@ -1,134 +1,88 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -u
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+: "${KAFKA_QUEUE_AUTH_PASSWORD:?export KAFKA_QUEUE_AUTH_PASSWORD before running this test}"
 
-# Credentials
-AUTH_USER="admin"
-AUTH_PASS="admin123"
+auth_user="${KAFKA_QUEUE_AUTH_USER:-admin}"
+auth_password="${KAFKA_QUEUE_AUTH_PASSWORD}"
+failures=0
 
-echo "=========================================="
-echo "Testing Authentication on All Services"
-echo "=========================================="
-echo ""
-
-# Function to test endpoint
-test_endpoint() {
-    local service_name=$1
-    local endpoint=$2
-    local should_require_auth=$3
-    local method=${4:-GET}  # Default to GET if not specified
-    
-    echo -n "Testing $service_name: $endpoint ... "
-    
-    # Test without auth
-    response=$(curl -s -o /dev/null -w "%{http_code}" -X "$method" "$endpoint" 2>&1)
-    
-    if [ "$should_require_auth" = "true" ]; then
-        # Should return 401 without auth
-        if [ "$response" = "401" ]; then
-            echo -e "${GREEN}✓ Protected (401 without auth)${NC}"
-            
-            # Test with auth
-            echo -n "  With auth: "
-            auth_response=$(curl -s -o /dev/null -w "%{http_code}" -X "$method" -u "$AUTH_USER:$AUTH_PASS" "$endpoint" 2>&1)
-            if [ "$auth_response" = "200" ] || [ "$auth_response" = "404" ] || [ "$auth_response" = "502" ] || [ "$auth_response" = "400" ]; then
-                echo -e "${GREEN}✓ Works with credentials (${auth_response})${NC}"
-            else
-                echo -e "${RED}✗ Failed (${auth_response})${NC}"
-            fi
-        else
-            echo -e "${RED}✗ NOT PROTECTED! Got ${response} instead of 401${NC}"
-        fi
-    else
-        # Should NOT require auth (like healthcheck)
-        if [ "$response" = "200" ] || [ "$response" = "404" ]; then
-            echo -e "${GREEN}✓ Public endpoint (${response})${NC}"
-        else
-            echo -e "${YELLOW}⚠ Got ${response}${NC}"
-        fi
-    fi
+status_without_auth() {
+  local method="${2:-GET}"
+  curl --silent --show-error --max-time 15 --output /dev/null \
+    --write-out '%{http_code}' --request "${method}" "$1"
 }
 
-echo "=========================================="
-echo "1. IN GATEWAY (port 7091)"
-echo "=========================================="
-test_endpoint "In Gateway" "http://localhost:7091/in/healthcheck" "false" "GET"
-test_endpoint "In Gateway" "http://localhost:7091/in/send" "true" "POST"
-echo ""
-
-echo "=========================================="
-echo "2. OUT GATEWAY (port 7092)"
-echo "=========================================="
-test_endpoint "Out Gateway" "http://localhost:7092/out/healthcheck" "false"
-test_endpoint "Out Gateway" "http://localhost:7092/out/list_sessions" "true"
-test_endpoint "Out Gateway" "http://localhost:7092/out/session_info/by_uid?session_uid=test" "true"
-echo ""
-
-echo "=========================================="
-echo "3. FILE STORAGE (port 7093)"
-echo "=========================================="
-test_endpoint "File Storage" "http://localhost:7093/files/healthcheck" "false"
-test_endpoint "File Storage" "http://localhost:7093/files/list_files/" "true"
-test_endpoint "File Storage" "http://localhost:7093/files/by_address/test/file.txt" "true"
-echo ""
-
-echo "=========================================="
-echo "4. LOGIC SERVICE ADMIN API (port 7096)"
-echo "=========================================="
-test_endpoint "Logic Admin" "http://localhost:7096/healthcheck" "false"
-test_endpoint "Logic Admin" "http://localhost:7096/auth/status" "false"
-test_endpoint "Logic Admin" "http://localhost:7096/requests" "true"
-test_endpoint "Logic Admin" "http://localhost:7096/responses" "true"
-test_endpoint "Logic Admin" "http://localhost:7096/events" "true"
-test_endpoint "Logic Admin" "http://localhost:7096/errors" "true"
-echo ""
-
-echo "=========================================="
-echo "5. MAIN ADMIN PANEL (port 7094)"
-echo "=========================================="
-test_endpoint "Main Admin" "http://localhost:7094/healthcheck" "false"
-test_endpoint "Main Admin" "http://localhost:7094/auth/status" "false"
-test_endpoint "Main Admin" "http://localhost:7094/index.html" "false"
-test_endpoint "Main Admin" "http://localhost:7094/admin/queue_info" "true"
-test_endpoint "Main Admin" "http://localhost:7094/admin/services/logic/requests" "true"
-echo ""
-
-echo "=========================================="
-echo "Testing WWW-Authenticate Header"
-echo "=========================================="
-echo "Checking if protected endpoints return WWW-Authenticate header..."
-
-# Test a few endpoints for WWW-Authenticate header
-test_www_auth() {
-    local endpoint=$1
-    echo -n "  $endpoint: "
-    header=$(curl -s -I "$endpoint" 2>&1 | grep -i "WWW-Authenticate")
-    if [ -n "$header" ]; then
-        echo -e "${YELLOW}Has WWW-Authenticate (may trigger browser prompt)${NC}"
-        echo "    $header"
-    else
-        echo -e "${GREEN}No WWW-Authenticate header${NC}"
-    fi
+status_with_auth() {
+  local method="${2:-GET}"
+  curl --silent --show-error --max-time 15 --output /dev/null \
+    --write-out '%{http_code}' --request "${method}" \
+    --user "${auth_user}:${auth_password}" "$1"
 }
 
-test_www_auth "http://localhost:7091/in/send"
-test_www_auth "http://localhost:7092/out/list_sessions"
-test_www_auth "http://localhost:7093/files/list_files/"
-test_www_auth "http://localhost:7096/requests"
-test_www_auth "http://localhost:7094/admin/queue_info"
+check_public() {
+  local name="$1"
+  local url="$2"
+  local status
+  status="$(status_without_auth "${url}" || true)"
+  if [[ "${status}" == "200" ]]; then
+    printf 'PASS public    %-24s %s\n' "${name}" "${status}"
+  else
+    printf 'FAIL public    %-24s expected 200, got %s\n' "${name}" "${status:-curl-error}"
+    failures=$((failures + 1))
+  fi
+}
 
-echo ""
-echo "=========================================="
-echo "Summary"
-echo "=========================================="
-echo "Check completed. All protected endpoints should:"
-echo "  1. Return 401 without authentication"
-echo "  2. Work with correct credentials"
-echo "  3. Public endpoints (healthcheck, auth/status, static) should work without auth"
-echo ""
-echo "Note: WWW-Authenticate headers on API endpoints may trigger browser prompts."
-echo "=========================================="
+check_protected() {
+  local name="$1"
+  local url="$2"
+  local allowed_with_auth="$3"
+  local method="${4:-GET}"
+  local anonymous_status authenticated_status
+  anonymous_status="$(status_without_auth "${url}" "${method}" || true)"
+  authenticated_status="$(status_with_auth "${url}" "${method}" || true)"
+
+  if [[ "${anonymous_status}" != "401" ]]; then
+    printf 'FAIL protected %-24s anonymous expected 401, got %s\n' \
+      "${name}" "${anonymous_status:-curl-error}"
+    failures=$((failures + 1))
+    return
+  fi
+
+  if [[ " ${allowed_with_auth} " == *" ${authenticated_status} "* ]]; then
+    printf 'PASS protected %-24s 401 -> %s\n' "${name}" "${authenticated_status}"
+  else
+    printf 'FAIL protected %-24s authenticated expected [%s], got %s\n' \
+      "${name}" "${allowed_with_auth}" "${authenticated_status:-curl-error}"
+    failures=$((failures + 1))
+  fi
+}
+
+check_public "in health" "http://localhost:7091/in/healthcheck"
+check_protected "in send" "http://localhost:7091/in/send" "400 415" "POST"
+
+check_public "out health" "http://localhost:7092/out/healthcheck"
+check_protected "out sessions" "http://localhost:7092/out/list_sessions" "200"
+
+check_public "storage health" "http://localhost:7093/files/healthcheck"
+check_protected "storage files" "http://localhost:7093/files/list_files/" "200"
+
+check_public "logic auth status" "http://localhost:7096/auth/status"
+check_protected "logic requests" "http://localhost:7096/requests" "200"
+
+check_public "hold auth status" "http://localhost:7097/hold_admin_panel/auth/status"
+check_protected "hold messages" "http://localhost:7097/hold_admin_panel/held_messages" "200"
+
+check_public "hold 2 auth status" "http://localhost:7099/hold_admin_panel_2/auth/status"
+check_protected "hold 2 messages" "http://localhost:7099/hold_admin_panel_2/held_messages" "200"
+
+check_public "queue auth status" "http://localhost:7094/auth/status"
+check_protected "queue info" "http://localhost:7094/admin/queue_info" "200"
+check_protected "queue proxy" "http://localhost:7094/admin/services/logic/requests" "200"
+
+if (( failures > 0 )); then
+  printf '\nAuthentication smoke test failed: %d check(s).\n' "${failures}" >&2
+  exit 1
+fi
+
+printf '\nAuthentication smoke test passed.\n'

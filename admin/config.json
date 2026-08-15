@@ -2,23 +2,47 @@
     "port": 7094,
     "host": "0.0.0.0",
     "services": {
-        "in_gateway": {
-            "url": "http://in_gateway:7091"
-        },
-        "out_gateway": {
-            "url": "http://out_gateway:7092"
-        },
-        "message_storage": {
-            "url": "http://file_storage:7093"
-        },
-        "logic": {
-            "url": "http://logic:7096"
-        },
-        "hold_service": {
-            "url": "http://hold_service:7098"
-        },
-        "hold_service_2": {
-            "url": "http://hold_service_2:7100"
+    "in_gateway": {
+      "url": "http://in_gateway:7091",
+      "auth": {
+        "username": "admin",
+        "password_env": "KAFKA_QUEUE_AUTH_PASSWORD"
+      }
+    },
+    "out_gateway": {
+      "url": "http://out_gateway:7092",
+      "auth": {
+        "username": "admin",
+        "password_env": "KAFKA_QUEUE_AUTH_PASSWORD"
+      }
+    },
+    "message_storage": {
+      "url": "http://file_storage:7093",
+      "auth": {
+        "username": "admin",
+        "password_env": "KAFKA_QUEUE_AUTH_PASSWORD"
+      }
+    },
+    "logic": {
+      "url": "http://logic:7096",
+      "auth": {
+        "username": "admin",
+        "password_env": "KAFKA_QUEUE_AUTH_PASSWORD"
+      }
+    },
+    "hold_service": {
+      "url": "http://hold_service:7098",
+      "auth": {
+        "username": "admin",
+        "password_env": "KAFKA_QUEUE_AUTH_PASSWORD"
+      }
+    },
+    "hold_service_2": {
+      "url": "http://hold_service_2:7100",
+      "auth": {
+        "username": "admin",
+        "password_env": "KAFKA_QUEUE_AUTH_PASSWORD"
+      }
         }
     },
     "auth": {
@@ -27,7 +51,7 @@
         "credentials": [
             {
                 "username": "admin",
-                "password": "admin123"
+        "password_env": "KAFKA_QUEUE_AUTH_PASSWORD"
             }
         ],
         "exclude_paths": [

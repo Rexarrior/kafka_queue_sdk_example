@@ -19,7 +19,7 @@ in_gateway → logic_in → Logic Service → hold_in → Hold Service → files
 ### config.json
 Основная конфигурация сервиса:
 - База данных SQLite для хранения удержанных сообщений
-- Настройки аутентификации (admin/admin123)
+- Настройки аутентификации через `KAFKA_QUEUE_AUTH_PASSWORD`
 - Время жизни освобожденных сообщений (TTL)
 
 ### server_config.json
@@ -65,7 +65,7 @@ docker-compose logs -f hold_service
 
 ## API Endpoints
 
-Основной API (порт 7097) предоставляет endpoints для управления удержанными сообщениями. Все endpoints требуют basic аутентификацию (admin/admin123).
+Основной API (порт 7097) предоставляет endpoints для управления удержанными сообщениями. Все рабочие endpoints требуют Basic-аутентификацию; имя пользователя — `admin`, пароль поступает из `KAFKA_QUEUE_AUTH_PASSWORD`.
 
 Админский API (порт 7098) предоставляет endpoints для мониторинга и отладки сервиса.
 

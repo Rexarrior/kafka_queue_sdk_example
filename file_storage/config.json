@@ -1,7 +1,7 @@
 {
     "pg_config": {
         "user": "postgres",
-        "password": "auGHTLewleAS",
+        "password_env": "POSTGRES_PASSWORD",
         "host": "postgres_db",
         "port": 5432,
         "database": "postgres"
@@ -10,18 +10,19 @@
     "port": 7093,
     "storage":{
         "bucket":"files",
-        "access_key": "accessKey_UF5qoB",
-        "sec_key": "verySecretKey_UF5qoB",
+        "access_key_env": "SCALITY_ACCESS_KEY_ID",
+        "sec_key_env": "SCALITY_SECRET_ACCESS_KEY",
         "endpoint": "http://S3-server:9000"
     },
-    "storage_type": "s3",
+  "storage_type": "s3",
+  "max_upload_bytes": 104857600,
     "auth": {
         "enabled": true,
         "method": "basic",
         "credentials": [
             {
                 "username": "admin",
-                "password": "admin123"
+        "password_env": "KAFKA_QUEUE_AUTH_PASSWORD"
             }
         ],
         "exclude_paths": [

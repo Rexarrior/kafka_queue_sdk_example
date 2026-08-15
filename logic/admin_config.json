@@ -1,4 +1,7 @@
 {
+  "observer_root": "/app/data",
+  "capture_payload": false,
+  "capture_headers": false,
     "request_dir": "/app/data/requests",
     "responses_dir": "/app/data/responses",
     "event_dir": "/app/data/events",
@@ -13,7 +16,7 @@
         "credentials": [
             {
                 "username": "admin",
-                "password": "admin123"
+        "password_env": "KAFKA_QUEUE_AUTH_PASSWORD"
             }
         ],
         "exclude_paths": [

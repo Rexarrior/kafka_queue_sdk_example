@@ -1,7 +1,7 @@
 {
     "pg_config": {
         "user": "postgres",
-        "password": "auGHTLewleAS",
+        "password_env": "POSTGRES_PASSWORD",
         "host": "postgres_db",
         "port": 5432,
         "database": "postgres"
@@ -15,7 +15,7 @@
         "credentials": [
             {
                 "username": "admin",
-                "password": "admin123"
+        "password_env": "KAFKA_QUEUE_AUTH_PASSWORD"
             }
         ],
         "exclude_paths": [

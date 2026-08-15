@@ -1,7 +1,7 @@
 {
     "pg_config": {
         "user": "postgres",
-        "password": "auGHTLewleAS",
+        "password_env": "POSTGRES_PASSWORD",
         "host": "192.168.8.196",
         "port": 5433,
         "database": "postgres"
@@ -11,5 +11,19 @@
     "storage":{
         "root_path": "./stored_data"
     },
-    "storage_type": "local"
+    "storage_type": "local",
+    "max_upload_bytes": 104857600,
+    "auth": {
+        "enabled": true,
+        "method": "basic",
+        "credentials": [
+            {
+                "username": "admin",
+                "password_env": "KAFKA_QUEUE_AUTH_PASSWORD"
+            }
+        ],
+        "exclude_paths": [
+            "/files/healthcheck"
+        ]
+    }
 }

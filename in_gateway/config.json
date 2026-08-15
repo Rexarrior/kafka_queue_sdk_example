@@ -9,20 +9,21 @@
 
     "pg_config": {
         "user": "postgres",
-        "password": "auGHTLewleAS",
+        "password_env": "POSTGRES_PASSWORD",
         "host": "postgres_db",
         "port": 5432,
         "database": "postgres"
     },
-    "host": "0.0.0.0",
-    "port": 7091,
+  "host": "0.0.0.0",
+  "port": 7091,
+  "max_upload_bytes": 104857600,
     "auth": {
         "enabled": true,
         "method": "basic",
         "credentials": [
             {
                 "username": "admin",
-                "password": "admin123"
+        "password_env": "KAFKA_QUEUE_AUTH_PASSWORD"
             }
         ],
         "exclude_paths": [

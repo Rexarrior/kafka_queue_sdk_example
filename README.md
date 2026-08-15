@@ -1,17 +1,21 @@
 # Kafka Queue SDK Example - Docker Setup
 
-This is a complete Docker-based setup for a Kafka-based microservices architecture using the kafkaQueueSdk framework.
+This is a complete Docker-based setup for a Kafka-based microservices architecture using `kafka_server_sdk==1.0.0` and `kafka_queue_client==1.0.0`.
+
+The Docker build installs both distributions from the sibling `../kafkaQueueSdk`
+checkout and fails if either imported version is not exactly `1.0.0`.
 
 ## Architecture Overview
 
 ### Infrastructure Services
-- **Zookeeper** (port 2181) - Kafka coordination service
 - **Kafka** (port 9092) - Message broker
 - **Kafka UI** (port 8020) - Web interface for Kafka management
 - **PostgreSQL** (port 5433) - Database for services
 - **MinIO** (ports 9090, 9091) - S3-compatible object storage
   - API endpoint: http://localhost:9090
   - Web Console: http://localhost:9091
+  - `s3-init` idempotently creates the required `files` bucket before
+    `file_storage` starts.
 
 ### Application Services
 - **in_gateway** (port 7091) - Input gateway service
@@ -31,13 +35,26 @@ This is a complete Docker-based setup for a Kafka-based microservices architectu
 
 **Important:** The docker-compose.yaml uses a build context that includes the parent `kafkaQueueSdk` directory. Make sure you run docker-compose from the `kafka_queue_sdk_example` directory.
 
-1. **Start all services:**
+1. **Configure the required SDK 1.0 authentication secret:**
+
+   Keep the real value out of Git. The same variable is injected into every
+   HTTP service and into queue-admin for its authenticated downstream calls.
+
    ```bash
-   cd kafka_queue_sdk_example
-   docker-compose up -d
+   export KAFKA_QUEUE_AUTH_PASSWORD="$(openssl rand -base64 32)"
    ```
 
-2. **View logs:**
+   `.env.example` documents all required variable names. Existing local `.env`
+   files can be retained for the infrastructure values, but any credentials
+   that were ever committed must be rotated.
+
+2. **Start all services:**
+   ```bash
+   cd kafka_queue_sdk_example
+   docker-compose up -d --build
+   ```
+
+3. **View logs:**
    ```bash
    # All services
    docker-compose logs -f
@@ -46,12 +63,12 @@ This is a complete Docker-based setup for a Kafka-based microservices architectu
    docker-compose logs -f in_gateway
    ```
 
-3. **Stop all services:**
+4. **Stop all services:**
    ```bash
    docker-compose down
    ```
 
-4. **Stop and remove volumes:**
+5. **Stop and remove volumes:**
    ```bash
    docker-compose down -v
    ```
@@ -149,6 +166,29 @@ The architecture follows this message flow:
 Edit `.env` file to configure:
 - PostgreSQL credentials
 - S3 access keys
+- `KAFKA_QUEUE_AUTH_PASSWORD` is deliberately not stored in the tracked JSON
+  configs; export it before every Compose command or provide it through your
+  deployment secret manager.
+
+### SDK 1.0 migration
+
+- Stop every application service before upgrading an existing test queue.
+- Old Kafka/cache messages and old aggregator snapshots are not compatible and
+  may be removed as described in `../kafkaQueueSdk/MIGRATION.md`.
+- For an existing pre-1.0 PostgreSQL schema, start only PostgreSQL and run:
+
+  ```bash
+  docker-compose up -d postgres_db
+  ./migrate_sdk_1_db.sh
+  ```
+
+- Do not run that SQL against an empty database before SDK 1.0 has created the
+  tables. A fresh database created by this example already gets the new schema.
+- The in-gateway and file-storage limit uploads to 100 MiB. Change
+  `max_upload_bytes` in their configs and at the reverse proxy together.
+- Service-admin capture of payloads and headers is explicitly disabled. If you
+  enable it, set retention/quota controls and treat the observer files as
+  sensitive data.
 
 ### Service Configurations
 Each service has its own configuration files in its directory:
@@ -163,8 +203,7 @@ Each service has its own configuration files in its directory:
 ## Health Checks
 
 All infrastructure services have health checks configured:
-- **Zookeeper**: Port 2181 connectivity
-- **Kafka**: Topic listing capability
+- **Kafka (KRaft)**: Broker API readiness
 - **PostgreSQL**: `pg_isready` check
 - **S3 Server**: HTTP endpoint check
 
@@ -220,6 +259,52 @@ docker-compose up -d --build
 ```
 
 ## Development
+
+### Validate the migration contract
+
+Run the config tests with both sibling source packages on `PYTHONPATH` so that
+an older installed client cannot shadow the 1.0 checkout:
+
+```bash
+PYTHONPATH=../kafkaQueueSdk/client:../kafkaQueueSdk \
+  ../kafkaQueueSdk/.venv/bin/python -m pytest -q -p no:cacheprovider \
+  tests/test_sdk_1_migration.py
+```
+
+After the stack starts, verify public/protected endpoints with:
+
+```bash
+./test_auth.sh
+```
+
+For the terminal-flow smoke test, submit a new ZIP to `/in/send`, wait until its
+messages appear in the primary hold service, unhold them, and then verify both
+conditions:
+
+- `/files/list_files/by_ext_id/<external-id>` contains every submitted entry;
+- `/out/session_info/by_external_uid?external_uid=<external-id>` reports the
+  session and every `entries_info[]` item as `completed`, with `file_storage` as
+  the terminal step.
+
+Run this check with a new `external-id`; pre-fix test sessions can legitimately
+remain failed or incomplete and are not replayed after their offsets were
+committed.
+
+The reproducible client-driven variant uses the public high-level client and
+strictly verifies submission IDs, session and entry fields, all 17 stored
+objects, the combined download, and every per-entry download:
+
+```bash
+KAFKA_QUEUE_AUTH_PASSWORD='<local-test-password>' \
+PYTHONPATH=../kafkaQueueSdk/client:../kafkaQueueSdk \
+  ../kafkaQueueSdk/.venv/bin/python tests/live_client_cycle.py
+```
+
+This Compose topology exposes the three client APIs on separate ports, so the
+script configures `incoming_url`, `progress_url`, and `files_url`. Deployments
+with a reverse proxy serving all three paths may continue to pass one
+`base_url`. Override the smoke-test endpoints with `KAFKA_QUEUE_IN_URL`,
+`KAFKA_QUEUE_OUT_URL`, `KAFKA_QUEUE_FILES_URL`, and `KAFKA_QUEUE_HOLD_URL`.
 
 ### Rebuild specific service
 ```bash

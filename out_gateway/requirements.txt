@@ -1,19 +1,4 @@
-# Main dependencies from setup.py
-confluent_kafka
-flask
-flask_restx
-werkzeug
-requests
-sqlalchemy
-psycopg2-binary
-boto3
-aioboto3
-asyncpg
-wheel
-# Test dependencies
-pytest
-pytest-asyncio
-moto
-aiofiles  # For async file operations
-httpx  # For client tests
-pytest_httpx
+# Production installs resolve these exact releases from the package index.
+# The Docker example installs the sibling source checkout and verifies the same versions.
+kafka_server_sdk==1.0.0
+kafka_queue_client==1.0.0

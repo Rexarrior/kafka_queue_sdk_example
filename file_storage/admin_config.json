@@ -1,8 +1,11 @@
 {
-    "request_dir" : "/home/admin1/Projects/KafkaCntrlalgo/services/file_storage/data/requests",
-    "responses_dir" : "/home/admin1/Projects/KafkaCntrlalgo/services/file_storage/data/responses",
-    "event_dir" : "/home/admin1/Projects/KafkaCntrlalgo/services/file_storage/data/events",
-    "error_dir" : "/home/admin1/Projects/KafkaCntrlalgo/services/file_storage/data/errors",
+    "observer_root": "/app/data",
+    "capture_payload": false,
+    "capture_headers": false,
+    "request_dir" : "/app/data/requests",
+    "responses_dir" : "/app/data/responses",
+    "event_dir" : "/app/data/events",
+    "error_dir" : "/app/data/errors",
     "response_ext": ".zip",
     "request_ext": ".zip",
     "port": 8061,
@@ -13,7 +16,7 @@
         "credentials": [
             {
                 "username": "admin",
-                "password": "admin123"
+                "password_env": "KAFKA_QUEUE_AUTH_PASSWORD"
             }
         ],
         "exclude_paths": [

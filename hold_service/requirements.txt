@@ -1,2 +1,4 @@
-kafka-queue-client @ file:///tmp/kafkaQueueSdk/client
-git+file:///tmp/kafkaQueueSdk
+# Production installs resolve these exact releases from the package index.
+# The Docker example installs the sibling source checkout and verifies the same versions.
+kafka_server_sdk==1.0.0
+kafka_queue_client==1.0.0

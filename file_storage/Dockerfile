@@ -16,9 +16,10 @@ COPY kafka_queue_sdk_example/file_storage/requirements.txt .
 # Install kafka packages from local copy
 RUN pip install --no-cache-dir /tmp/kafkaQueueSdk/client
 RUN pip install --no-cache-dir /tmp/kafkaQueueSdk
+RUN python -c "import kafka_queue_client, kafka_server_sdk; assert kafka_queue_client.__version__ == '1.0.0'; assert kafka_server_sdk.__version__ == '1.0.0'"
 
-# Install remaining dependencies (skip the local file and git references)
-RUN grep -v "kafka-queue-client @" requirements.txt | grep -v "git+" > requirements_filtered.txt && \
+# Install application-only dependencies; SDK packages came from the sibling checkout.
+RUN awk '!/^kafka_(server_sdk|queue_client)==/' requirements.txt > requirements_filtered.txt && \
     pip install --no-cache-dir -r requirements_filtered.txt
 
 # Clean up
@@ -28,7 +29,7 @@ RUN rm -rf /tmp/kafkaQueueSdk
 COPY kafka_queue_sdk_example/file_storage/ .
 
 # Create logs directory
-RUN mkdir -p logs
+RUN mkdir -p logs data/requests data/responses data/events data/errors
 
 # Make sure the script is executable
 RUN chmod +x run_kafka.sh
