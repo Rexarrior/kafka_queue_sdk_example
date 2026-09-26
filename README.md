@@ -7,6 +7,10 @@ checkout and fails if either imported version is not exactly `1.0.0`.
 
 ## Architecture Overview
 
+Parallel-processing acceptance profiles (threads, coroutines, processes and
+Kafka partitions): [parallel_lab](parallel_lab/README.md).
+See the [real Kafka test report](parallel_lab/REPORT.md) for results and limits.
+
 ### Infrastructure Services
 - **Kafka** (port 9092) - Message broker
 - **Kafka UI** (port 8020) - Web interface for Kafka management

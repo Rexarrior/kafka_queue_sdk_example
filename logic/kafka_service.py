@@ -5,10 +5,14 @@ from kafka_server_sdk.service_admin import AdminApiConfig
 import kafka_server_sdk.service_admin as debug_api
 
 log_dir = os.path.join(os.path.dirname(__file__), "logs")
-Logger().init_logging(log_dir, "DEBUG", 5, 10)
 
-server_config_path = "./server_config.json"
+server_config_path = os.environ.get('KQSDK_LOGIC_SERVER_CONFIG', './server_config.json')
 admin_config_path = "./admin_config.json"
+
+
+def echo_payload(value):
+    """Shared business operation for normal and parallel example services."""
+    return value
 
 
 class LogicServer(KafkaBasedServer):
@@ -29,11 +33,12 @@ class LogicServer(KafkaBasedServer):
             request,
             request.key,
             request.headers,
-            request.value
+            echo_payload(request.value)
         )
 
 
 if __name__ == "__main__":
+    Logger().init_logging(log_dir, "DEBUG", 5, 10)
     cfg = ServerConfig.load_from_file(server_config_path)
     admin_config = AdminApiConfig.load_from_file(admin_config_path)
     

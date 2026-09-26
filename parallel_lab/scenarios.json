@@ -1,0 +1,14 @@
+[
+  {"name":"baseline","mode":"sync","partitions":1,"replicas":1,"processing":{"concurrency":1,"ordering":"partition"}},
+  {"name":"threads","mode":"sync","partitions":1,"replicas":1,"processing":{"concurrency":4,"ordering":"unordered"}},
+  {"name":"coroutines","mode":"async","partitions":1,"replicas":1,"processing":{"concurrency":4,"ordering":"unordered"}},
+  {"name":"process_threads","mode":"sync","partitions":1,"replicas":1,"processing":{"concurrency":2,"processes":2,"ordering":"unordered","process_factory":"parallel_lab.service:sync_factory"}},
+  {"name":"process_coroutines","mode":"async","partitions":1,"replicas":1,"processing":{"concurrency":2,"processes":2,"ordering":"unordered","process_factory":"parallel_lab.service:async_factory"}},
+  {"name":"key_order","mode":"sync","partitions":1,"replicas":1,"processing":{"concurrency":4,"ordering":"key"}},
+  {"name":"partitions","mode":"sync","partitions":4,"replicas":2,"processing":{"concurrency":2,"ordering":"partition"}},
+  {"name":"hybrid","mode":"async","partitions":4,"replicas":2,"processing":{"concurrency":3,"ordering":"unordered"}},
+  {"name":"ordered_retry","mode":"async","partitions":1,"replicas":1,"retry":true,"processing":{"concurrency":4,"ordering":"key"}},
+  {"name":"rebalance_eager","mode":"sync","partitions":4,"replicas":2,"rebalance":true,"strategy":"range","processing":{"concurrency":2,"ordering":"partition"}},
+  {"name":"rebalance_cooperative","mode":"async","partitions":4,"replicas":2,"rebalance":true,"strategy":"cooperative-sticky","processing":{"concurrency":2,"ordering":"partition"}},
+  {"name":"crash_restart","mode":"sync","partitions":1,"replicas":1,"crash":true,"processing":{"concurrency":4,"ordering":"unordered"}}
+]
