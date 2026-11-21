@@ -1,5 +1,7 @@
 # Kafka Queue SDK Example - Docker Setup
 
+Recommended: [one queue URL through nginx](#one-queue-url-recommended), with an optional queue-admin proxy using the same client.
+
 This is a complete Docker-based setup for a Kafka-based microservices architecture using `kafka_server_sdk==1.0.0` and `kafka_queue_client==1.0.0`.
 
 The Docker build installs both distributions from the sibling `../kafkaQueueSdk`
@@ -378,3 +380,17 @@ For more details about the kafkaQueueSdk framework, see:
 - `../kafkaQueueSdk/doc/server/quickstart.md`
 - `../kafkaQueueSdk/doc/server/configs.md`
 - `../kafkaQueueSdk/doc/server/middleware.md`
+## One queue URL (recommended)
+
+For a **fresh disposable queue** without MinIO, use `prepare.py --local-files` below and append `-f compose.queue-local-files.yaml` to the Compose invocation, still naming `nginx admin` as the targets. Files then live in a project volume. Do not switch an existing S3 queue this way. The base Compose file still requires its normal .env keys for interpolation.
+
+With the sibling SDK checkout and Docker Compose 2.24.4+, prepare the normal .env and set a **distinct** KAFKA_QUEUE_CLIENT_PASSWORD. Then run:
+
+```sh
+python3 infra/queue_entry/prepare.py
+docker compose -f docker-compose.yaml -f compose.queue-entry.yaml up -d --build nginx admin
+```
+
+Use TaskQueueClient or AsyncTaskQueueClient with just one origin, user `queue-client`, and that password. Prefer `http://localhost:8080` (nginx); `http://localhost:7094` uses the built-in proxy. Both are bound to loopback in the overlay. Original direct service port mappings remain; restrict them before deploying outside a workstation. After editing service config regenerate the files and recreate services. Without this overlay no new client credential is required.
+
+With both test passwords exported, run `KAFKA_QUEUE_URL=http://localhost:8080 PYTHONPATH=../kafkaQueueSdk/client python tests/live_queue_entry.py` and repeat on port 7094. This creates real tasks and releases only their holds via the separate operator account. Run on an isolated test stack with the primary hold in manual mode.

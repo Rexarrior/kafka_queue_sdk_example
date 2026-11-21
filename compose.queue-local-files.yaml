@@ -1,0 +1,14 @@
+# Optional local filesystem backend, for a fresh test project (not an S3 migration).
+# Use after compose.queue-entry.yaml with prepare.py --local-files.
+services:
+  in_gateway:
+    depends_on: !override
+      kafka-init: {condition: service_completed_successfully}
+      db-migrate: {condition: service_completed_successfully}
+  file_storage:
+    depends_on: !override
+      kafka-init: {condition: service_completed_successfully}
+      db-migrate: {condition: service_completed_successfully}
+    volumes: [queue_entry_files:/var/lib/queue-files]
+volumes:
+  queue_entry_files: {}

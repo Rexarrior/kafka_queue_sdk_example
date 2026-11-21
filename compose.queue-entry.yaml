@@ -1,0 +1,23 @@
+# Opt-in: python3 infra/queue_entry/prepare.py before starting.
+x-client: &client
+  KAFKA_QUEUE_CLIENT_PASSWORD: ${KAFKA_QUEUE_CLIENT_PASSWORD:?set a distinct queue client password}
+services:
+  nginx:
+    image: nginx:stable-alpine
+    ports: ["127.0.0.1:8080:8080"]
+    networks: [app_net]
+    depends_on: [in_gateway, out_gateway, file_storage]
+    volumes:
+      - ../kafkaQueueSdk/infra/queue-entry/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+  in_gateway:
+    environment: *client
+    volumes: [./.queue-entry/in_gateway.json:/app/config.json:ro]
+  out_gateway:
+    environment: *client
+    volumes: [./.queue-entry/out_gateway.json:/app/config.json:ro]
+  file_storage:
+    environment: *client
+    volumes: [./.queue-entry/file_storage.json:/app/config.json:ro]
+  admin:
+    ports: !override ["127.0.0.1:7094:7094"]
+    volumes: [./.queue-entry/admin.json:/app/config.json:ro]
